@@ -1,7 +1,6 @@
 channels:
  - conda-forge
  - r
- - bioconda
 dependencies:
  - r-base=3.6.1
  - r-seqinr=3.4_5

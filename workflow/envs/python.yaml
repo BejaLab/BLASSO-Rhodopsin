@@ -2,3 +2,6 @@ channels:
  - conda-forge
 dependencies:
  - biopython=1.79
+ - pip
+ - pip:
+   - git+https://github.com/alephreish/bioformats

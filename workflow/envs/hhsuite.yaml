@@ -1,0 +1,8 @@
+channels:
+ - bioconda
+ - conda-forge
+dependencies:
+ - hhsuite=3.3.0
+ - ffindex=0.98
+ - mafft=7.475
+ - openmpi=4.1.6
