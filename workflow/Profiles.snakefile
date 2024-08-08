@@ -1,5 +1,6 @@
 
 ref_template = '7TM'
+profiles ,= glob_wildcards("resources/profiles/{profile}.hhm")
 
 rule uniref_clust:
     input:
@@ -87,43 +88,6 @@ rule uniref_cstranslate_a3m:
         export DATA_DIR=$CONDA_PREFIX/data
         mpirun --oversubscribe -np {threads} cstranslate_mpi -A $DATA_DIR/cs219.lib -D $DATA_DIR/context_data.lib -i {params.DB_in} -o {params.DB_out} -x 0.3 -c 4 -I a3m -b &> {log}
         """
-profiles ,= glob_wildcards("profiles/{profile}.hhm")
-
-rule copy_pdb:
-    input:
-        "profiles/{profile}_colabfold.pdb"
-    output:
-        "analysis/profiles/{profile}.pdb"
-    shell:
-        "cp {input} {output}"
-
-rule pdb_to_fasta:
-    input:
-        expand("analysis/profiles/{profile}.pdb", profile = profiles)
-    output:
-        fas = "analysis/profiles/sequences.fasta",
-        txt = "analysis/profiles/template.txt"
-    params:
-        names = profiles
-    conda:
-        "envs/python.yaml"
-    script:
-        "scripts/to_fasta.py"
-
-rule t_coffee:
-    input:
-        fas = "analysis/profiles/sequences.fasta",
-        txt = "analysis/profiles/template.txt"
-    output:
-        "analysis/profiles/alignment.aln"
-    params:
-        method = "sap_pair,mustang_pair"
-    log:
-        "analysis/profiles/alignment.log"
-    conda:
-        "envs/t_coffee.yaml"
-    shell:
-        "t_coffee {input.fas} -outfile {output} -method {params.method} -template_file {input.txt} -n_core 1 &> {log}"
 
 rule numbers_as_names:
     input:
@@ -158,7 +122,8 @@ rule uniref_hhblits:
         "{prefix}/sequences_a3m.log"
     params:
         db = "analysis/uniref/uniref_msa",
-        e = 1e-5,
+        qid = 30,
+        e = 1e-10,
         n = 2
     conda:
         "envs/hhsuite.yaml"
@@ -167,7 +132,7 @@ rule uniref_hhblits:
     shell:
         """
         mpirun --oversubscribe -np {threads} ffindex_apply_mpi -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- \
-            hhblits -cpu 1 -v 0 -b 1 -z 1 -d {params.db} -i stdin -oa3m stdout -o /dev/null -e {params.e} -n {params.n} &> {log}
+            hhblits -cpu 1 -v 0 -b 1 -z 1 -d {params.db} -i stdin -oa3m stdout -o /dev/null -e {params.e} -n {params.n} -qid {params.qid} &> {log}
         """
 
 rule addss:
@@ -190,7 +155,7 @@ rule hhalign:
     input:
         dat = "{prefix}/sequences_a3m.ffdata",
         idx = "{prefix}/sequences_a3m.ffindex",
-        hhm = "profiles/{profile}.hhm"
+        hhm = "resources/profiles/{profile}.hhm"
     output:
         dat = "{prefix}/hhalign/{profile}_hhr.ffdata",
         idx = "{prefix}/hhalign/{profile}_hhr.ffindex"
@@ -208,7 +173,7 @@ rule hhalign:
 
 rule hhr_to_a3m:
     input:
-        hhm = "profiles/{profile}.hhm",
+        hhm = "resources/profiles/{profile}.hhm",
         hhr = "{prefix}/hhalign/{profile}_hhr.ffdata",
         fasta = "{prefix}/sequences_num.fasta"
     output:
@@ -233,7 +198,7 @@ rule a3m_to_a2m:
 
 rule aggregate_alignments:
     input:
-        aln = "analysis/profiles/alignment.aln",
+        aln = "resources/profiles.aln",
         fas = "{prefix}/sequences.fasta",
         a2m = expand("{{prefix}}/hhalign/{profile}.a2m", profile = profiles),
         hhr = expand("{{prefix}}/hhalign/{profile}_hhr.ffdata", profile = profiles)
@@ -295,3 +260,15 @@ rule combine_refs_and_targets:
         "envs/python.yaml"
     script:
         "scripts/combine_refs_and_targets.py"
+
+rule targets_pos_profiles:
+    input:
+        mapout = "analysis/predict/{set}-profiles/{target}.txt",
+        positions = "training/{set}-profiles/position_retinal.dat"
+    output:
+        "output/{set}-profiles/{target}.pos"
+    conda:
+        "envs/python.yaml"
+    script:
+        "scripts/targets_pos.py"
+

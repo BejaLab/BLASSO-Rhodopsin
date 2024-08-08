@@ -1,2 +1,6 @@
 .snakemake/
 workflow/.snakemake/
+sandbox
+*.swp
+*.swo
+*~
