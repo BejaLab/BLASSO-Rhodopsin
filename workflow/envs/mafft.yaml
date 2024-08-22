@@ -1,6 +1,5 @@
 channels:
+ - conda-forge
  - bioconda
 dependencies:
- - seqkit=2.2.0
  - mafft=7.475
- - hhsuite=3.3.0

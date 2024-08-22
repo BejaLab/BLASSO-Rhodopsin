@@ -48,7 +48,7 @@ rule uniref_mafft:
     threads:
         workflow.cores
     shell:
-        "mpirun --oversubscribe -np {threads} ffindex_apply_mpi -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- mafft --auto - &> {log}"
+        "ffindex_apply_py -j {threads} -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- mafft --auto - &> {log}"
 
 rule uniref_a3m:
     input:
@@ -64,7 +64,7 @@ rule uniref_a3m:
     shell:
         """
         export PATH=$CONDA_PREFIX/scripts:$PATH
-        mpirun --oversubscribe -np {threads} ffindex_apply_mpi -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- reformat.pl -v 0 -M first fas a3m /dev/stdin /dev/stdout
+        ffindex_apply_py -j {threads} -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- reformat.pl -v 0 -M first fas a3m /dev/stdin /dev/stdout
         """
 
 rule uniref_cstranslate_a3m:
@@ -76,9 +76,6 @@ rule uniref_cstranslate_a3m:
         idx = "{prefix}_msa_cs219.ffindex"
     log:
         "{prefix}_msa_cs219.log"
-    params:
-        DB_in  = "{prefix}_msa_a3m",
-        DB_out = "{prefix}_msa_cs219"
     conda:
         "envs/hhsuite.yaml"
     threads:
@@ -86,29 +83,20 @@ rule uniref_cstranslate_a3m:
     shell:
         """
         export DATA_DIR=$CONDA_PREFIX/data
-        mpirun --oversubscribe -np {threads} cstranslate_mpi -A $DATA_DIR/cs219.lib -D $DATA_DIR/context_data.lib -i {params.DB_in} -o {params.DB_out} -x 0.3 -c 4 -I a3m -b &> {log}
+        ffindex_apply_py -j {threads}  -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- \
+            cstranslate -A $DATA_DIR/cs219.lib -D $DATA_DIR/context_data.lib -i stdin -o stdout -x 0.3 -c 4 -I a3m -b &> {log}
         """
-
-rule numbers_as_names:
-    input:
-        "{prefix}/sequences.fasta"
-    output:
-        "{prefix}/sequences_num.fasta"
-    conda:
-        "envs/tools.yaml"
-    shell:
-        "seqkit fx2tab {input} | nl -w1 | sed 's/\\t/ /' | seqkit tab2fx -o {output}"
 
 rule ffindex_from_fasta:
     input:
-        "{prefix}/sequences_num.fasta"
+        "{prefix}/sequences.fasta"
     output:
         dat = "{prefix}/sequences.ffdata",
         idx = "{prefix}/sequences.ffindex"
     conda:
         "envs/hhsuite.yaml"
     shell:
-        "ffindex_from_fasta -s {output.dat} {output.idx} {input}"
+        "ffindex_from_fasta_py {output.dat} {output.idx} {input}"
 
 rule uniref_hhblits:
     input:
@@ -131,7 +119,7 @@ rule uniref_hhblits:
         workflow.cores
     shell:
         """
-        mpirun --oversubscribe -np {threads} ffindex_apply_mpi -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- \
+        ffindex_apply_py -j {threads} -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- \
             hhblits -cpu 1 -v 0 -b 1 -z 1 -d {params.db} -i stdin -oa3m stdout -o /dev/null -e {params.e} -n {params.n} -qid {params.qid} &> {log}
         """
 
@@ -149,8 +137,9 @@ rule addss:
     shell:
         """
         export PATH=$CONDA_PREFIX/scripts:$PATH
-        mpirun --oversubscribe -np {threads} ffindex_apply_mpi -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- addss.pl -a3m -v 0 stdin stdout
+        ffindex_apply_py -j {threads} -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- addss.pl -a3m -v 0 stdin stdout
         """
+
 rule hhalign:
     input:
         dat = "{prefix}/sequences_a3m.ffdata",
@@ -166,16 +155,13 @@ rule hhalign:
     threads:
         workflow.cores
     shell:
-        """
-        mpirun --oversubscribe -np {threads} ffindex_apply_mpi -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- \
-            hhalign -v 0 -glob -i stdin -t {input.hhm} -o stdout &> {log}
-        """
+        "ffindex_apply_py -j {threads} -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- hhalign -v 0 -glob -i stdin -t {input.hhm} -o stdout &> {log}"
 
 rule hhr_to_a3m:
     input:
         hhm = "resources/profiles/{profile}.hhm",
         hhr = "{prefix}/hhalign/{profile}_hhr.ffdata",
-        fasta = "{prefix}/sequences_num.fasta"
+        fasta = "{prefix}/sequences.fasta"
     output:
         "{prefix}/hhalign/{profile}.a3m"
     conda:
@@ -232,7 +218,7 @@ rule profile_ref_aln:
     params:
         ref = ref_template
     conda:
-        "envs/tools.yaml"
+        "envs/seqkit.yaml"
     shell:
         "seqkit grep -vp {params.ref}_consensus {input} > {output}"
 
@@ -271,4 +257,3 @@ rule targets_pos_profiles:
         "envs/python.yaml"
     script:
         "scripts/targets_pos.py"
-

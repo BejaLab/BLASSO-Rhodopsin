@@ -2,7 +2,9 @@ channels:
  - bioconda
  - conda-forge
 dependencies:
+ - conda-ecosystem-user-package-isolation
  - hhsuite=3.3.0
- - ffindex=0.98
- - mafft=7.475
- - openmpi=4.1.6
+ - mafft=7.525
+ - pip
+ - pip:
+   - git+https://github.com/alephreish/ffindex-py@143f63d55761a9e48b5abc46e0e22a6580258ea6

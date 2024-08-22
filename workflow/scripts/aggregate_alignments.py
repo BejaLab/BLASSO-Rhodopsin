@@ -39,18 +39,15 @@ for a2m_file, hhr_file in zip(a2m_files, hhr_files):
             template = record.id.rsplit('_consensus', maxsplit = 1)[0]
             template_seqs[template] = record.seq
         else:
-            rec_num, record.id, *rest = record.description.split(' ') # revert back to the original ename
-            record.description = ' '.join([ record.id ] + rest)
-            a2m_records[rec_num] = record
+            a2m_records[record.id] = record
 
     with open(hhr_file) as hhr:
         for record in read_hhr(hhr):
-            rec_num = record['query']['name']
-            name = a2m_records[rec_num].id
+            name = record['query']['name']
             score = record['Score']
             if name not in best_scores or score > best_scores[name]:
                 best_scores[name] = score
-                best_matches[name] = a2m_records[rec_num], template
+                best_matches[name] = a2m_records[name], template
 
 def write_fasta(name, seq, file):
     file.write(f">{name}\n{seq}\n")

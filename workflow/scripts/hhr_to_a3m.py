@@ -34,17 +34,18 @@ with open(hhm_file) as hhm:
 with open(hhr_file) as hhr, open(output_file, 'w') as out:
     write_fasta(cons_name, cons_seq, out)
     for record in read_hhr(hhr):
-        query = record['query']
-        template = record['template']
-        fasta_record = fasta_records[query['name']]
-        q_start, q_end = query['coords']
-        t_start, t_end = template['coords']
+        if record['Aligned_cols'] > 1:
+            query = record['query']
+            template = record['template']
+            fasta_record = fasta_records[query['name']]
+            q_start, q_end = query['coords']
+            t_start, t_end = template['coords']
 
-        seq = fasta_record.seq[:q_start - 1].lower()
-        seq += '-' * (t_start - 1)
-        for q, t in zip(query['alignment'], template['alignment']):
-            seq += q if t != '-' else q.lower()
-        seq += '-' * (template['len'] - t_end)
-        seq += fasta_record.seq[q_end:].lower()
+            seq = fasta_record.seq[:q_start - 1].lower()
+            seq += '-' * (t_start - 1)
+            for q, t in zip(query['alignment'], template['alignment']):
+                seq += q if t != '-' else q.lower()
+            seq += '-' * (template['len'] - t_end)
+            seq += fasta_record.seq[q_end:].lower()
 
-        write_fasta(fasta_record.description, seq, out)
+            write_fasta(fasta_record.description, seq, out)

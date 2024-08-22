@@ -27,7 +27,7 @@ rule training_prepare_sequences:
         nogaps = "training/original/sequences.fasta",
         alignment = "training/original/sequences.fas"
     conda:
-        "envs/tools.yaml"
+        "envs/seqkit.yaml"
     shell:
         "seqkit fx2tab {input.fasta} | paste {input.dat} - | grep -v ^NA | cut -f2,3 | seqkit tab2fx | seqkit rename | tee {output.alignment} | seqkit seq -go {output.nogaps}"
 
@@ -73,7 +73,7 @@ rule training_align:
     threads:
         workflow.cores
     conda:
-        "envs/tools.yaml"
+        "envs/mafft.yaml"
     shell:
         "mafft --thread {threads} --localpair --maxiterate 1000 {input} > {output}"
 
@@ -83,10 +83,11 @@ rule training_annotate:
     output:
         "training/{set}/sequences.a2m"
     conda:
-        "envs/tools.yaml"
+        "envs/hhsuite.yaml"
     shell:
         """
-        "$CONDA_PREFIX"/scripts/reformat.pl fas a3m {input} /dev/stdout -M 50 -v 0 | hhconsensus -i stdin -o stdout | "$CONDA_PREFIX"/scripts/addss.pl stdin stdout | "$CONDA_PREFIX"/scripts/reformat.pl a3m a2m /dev/stdin {output}
+        export PATH=$CONDA_PREFIX/scripts:$PATH
+        reformat.pl fas a3m {input} /dev/stdout -M 50 -v 0 | hhconsensus -i stdin -o stdout | addss.pl stdin stdout | reformat.pl a3m a2m /dev/stdin {output}
         """
 
 rule training_convert:
@@ -95,7 +96,7 @@ rule training_convert:
     output:
         "training/{set}/sequences.a2m.fas"
     conda:
-        "envs/tools.yaml"
+        "envs/seqkit.yaml"
     shell:
         "seqkit fx2tab {input} | tail -n+4 | seqkit tab2fx | seqkit replace -sp \\\\. -r - -o {output}"
 
@@ -157,7 +158,7 @@ rule targets_align:
     shadow:
         "minimal"
     conda:
-        "envs/tools.yaml"
+        "envs/mafft.yaml"
     threads:
         workflow.cores
     shell:
