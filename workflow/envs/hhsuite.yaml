@@ -7,4 +7,4 @@ dependencies:
  - mafft=7.525
  - pip
  - pip:
-   - git+https://github.com/alephreish/ffindex-py@143f63d55761a9e48b5abc46e0e22a6580258ea6
+   - git+https://github.com/alephreish/ffindex-py@89ca48b6bac0974cb9438f0c8e06dab52b054745

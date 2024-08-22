@@ -57,6 +57,8 @@ rule uniref_a3m:
     output:
         dat = "{prefix}_msa_a3m.ffdata",
         idx = "{prefix}_msa_a3m.ffindex"
+    log:
+        "{prefix}_msa_a3m.log"
     conda:
         "envs/hhsuite.yaml"
     threads:
@@ -64,7 +66,7 @@ rule uniref_a3m:
     shell:
         """
         export PATH=$CONDA_PREFIX/scripts:$PATH
-        ffindex_apply_py -j {threads} -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- reformat.pl -v 0 -M first fas a3m /dev/stdin /dev/stdout
+        ffindex_apply_py -j {threads} -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- reformat.pl -v 0 -M first fas a3m /dev/stdin /dev/stdout &> {log}
         """
 
 rule uniref_cstranslate_a3m:
@@ -130,6 +132,8 @@ rule addss:
     output:
         dat = "{prefix}/sequences_ss_a3m.ffdata",
         idx = "{prefix}/sequences_ss_a3m.ffindex"
+    log:
+        "{prefix}/sequences_ss_a3m.log"
     conda:
         "envs/hhsuite.yaml"
     threads:
@@ -137,7 +141,7 @@ rule addss:
     shell:
         """
         export PATH=$CONDA_PREFIX/scripts:$PATH
-        ffindex_apply_py -j {threads} -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- addss.pl -a3m -v 0 stdin stdout
+        ffindex_apply_py -j {threads} -d {output.dat} -i {output.idx} {input.dat} {input.idx} -- addss.pl -a3m -v 0 stdin stdout &> {log}
         """
 
 rule hhalign:
